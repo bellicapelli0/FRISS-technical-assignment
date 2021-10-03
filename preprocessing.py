@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from time import time
+from sklearn.preprocessing import MinMaxScaler
 
 def date_claimed_to_fraud(date):
     return 0.0 if pd.isna(date) else 1.0
@@ -18,7 +19,7 @@ def preprocess(train_file, test_file, fraud_file):
     # drop useless columns and possible bias columns
     drop_cols = ['sys_sector', 'sys_label', 'sys_process', 'sys_product',
                  'sys_dataspecification_version', 'sys_currency_code',
-                 'ph_gender', 'ph_name', 'ph_firstname']
+                 'ph_gender']
     CH_train = CH_train.drop(columns=drop_cols)
     CH_test = CH_test.drop(columns=drop_cols)
     
@@ -67,23 +68,19 @@ def preprocess(train_file, test_file, fraud_file):
     
     # dummy columns for categorical features
     CH_train = pd.concat([CH_train.drop('claim_causetype', axis=1),
-                pd.get_dummies(CH_train['claim_causetype'], prefix='cause')], axis=1)
+                    pd.get_dummies(CH_train['claim_causetype'], prefix='cause')], axis=1)
     CH_train = pd.concat([CH_train.drop('object_make', axis=1),
                     pd.get_dummies(CH_train['object_make'], prefix='make')], axis=1)
+    CH_train = pd.concat([CH_train.drop('policy_profitability', axis=1),
+                    pd.get_dummies(CH_train['policy_profitability'], prefix='profitability')], axis=1)
 
     CH_test = pd.concat([CH_test.drop('claim_causetype', axis=1),
                     pd.get_dummies(CH_test['claim_causetype'], prefix='cause')], axis=1)
     CH_test = pd.concat([CH_test.drop('object_make', axis=1),
                     pd.get_dummies(CH_test['object_make'], prefix='make')], axis=1)
+    CH_test = pd.concat([CH_test.drop('policy_profitability', axis=1),
+                    pd.get_dummies(CH_test['policy_profitability'], prefix='profitability')], axis=1)
     
-    # profitability conversion
-    profitability_map = {'Very low': 0,
-                     'Low': 1,
-                     'Neutral': 2,
-                     'High': 3,
-                     'Very high': 4}
-    CH_train['policy_profitability'] = CH_train['policy_profitability'].map(profitability_map)
-    CH_test['policy_profitability'] = CH_test['policy_profitability'].map(profitability_map)
     
     # date decomposition
     CH_train['occurred_year'] = CH_train["claim_date_occurred"].dt.year
@@ -102,9 +99,36 @@ def preprocess(train_file, test_file, fraud_file):
     CH_test['reported_month'] = CH_test["claim_date_reported"].dt.month
     CH_test['reported_day'] = CH_test["claim_date_reported"].dt.day
     
-    CH_train = CH_train.drop(columns=["claim_date_occurred", "claim_date_reported"])
-    CH_test = CH_test.drop(columns=["claim_date_occurred", "claim_date_reported"])
+    # Previous claims
+    CH_train["full_name"] = CH_train["ph_name"] + " " + CH_train["ph_firstname"]
+    CH_test["full_name"] = CH_test["ph_name"] + " " + CH_test["ph_firstname"]
     
+    CH_train["set"] = ["train"]*len(CH_train)
+    CH_test["set"] = ["test"]*len(CH_test)
+    full_set = CH_train.append(CH_test)
+    
+    full_set = full_set.sort_values('claim_date_reported')
+    full_set['prev_claims']=full_set.groupby('full_name')['full_name'].cumcount()
+    
+    CH_train = full_set[full_set["set"] == "train"]
+    CH_test = full_set[full_set["set"] == "test"]
+
+    drop_cols = ["ph_name", "ph_firstname", "full_name", "set", "claim_date_occurred", "claim_date_reported"]
+    CH_train = CH_train.drop(columns = drop_cols)
+    CH_test = CH_test.drop(columns = drop_cols)
+    
+    # Normalization
+    norm_cols = ['claim_amount_claimed_total', 'object_year_construction', 'policy_insured_amount', 
+             'claim_time_interval', 'occurred_year', 'occurred_month', 'occurred_day',
+             'reported_year', 'reported_month', 'reported_day', 'prev_claims']
+
+    for column in norm_cols:
+        x = np.append(CH_train[column], CH_test[column])
+        scaler = MinMaxScaler()
+        scaler.fit(x.reshape(-1,1))
+        CH_train[column] = scaler.transform(CH_train[[column]].values)
+        CH_test[column] = scaler.transform(CH_test[[column]].values)
+
     assert (CH_train.columns == CH_test.columns).all()
     
     print("Finished preprocessing.")
