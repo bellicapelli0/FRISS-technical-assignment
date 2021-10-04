@@ -58,13 +58,13 @@ def preprocess(train_file, test_file, fraud_file):
     CH_train = CH_train.dropna(subset=['claim_causetype'])
     CH_test = CH_test.dropna(subset=['claim_causetype'])
     
-    # substitute NaNs in policy_insured_amount with mean 
-    # TODO: maybe remove
-    CH_train['policy_insured_amount'] = CH_train['policy_insured_amount'].fillna(
-                                                  CH_train['policy_insured_amount'].mean())
+#     # substitute NaNs in policy_insured_amount with mean 
+     
+#     CH_train['policy_insured_amount'] = CH_train['policy_insured_amount'].fillna(
+#                                                   CH_train['policy_insured_amount'].mean())
 
-    CH_test['policy_insured_amount'] = CH_test['policy_insured_amount'].fillna(
-                                                  CH_test['policy_insured_amount'].mean())
+#     CH_test['policy_insured_amount'] = CH_test['policy_insured_amount'].fillna(
+#                                                   CH_test['policy_insured_amount'].mean())
     
     # dummy columns for categorical features
     CH_train = pd.concat([CH_train.drop('claim_causetype', axis=1),
@@ -113,12 +113,13 @@ def preprocess(train_file, test_file, fraud_file):
     CH_train = full_set[full_set["set"] == "train"]
     CH_test = full_set[full_set["set"] == "test"]
 
-    drop_cols = ["ph_name", "ph_firstname", "full_name", "set", "claim_date_occurred", "claim_date_reported"]
+    drop_cols = ["ph_name", "ph_firstname", "full_name", "set", "claim_date_occurred", 
+                 "claim_date_reported",'policy_insured_amount']
     CH_train = CH_train.drop(columns = drop_cols)
     CH_test = CH_test.drop(columns = drop_cols)
     
     # Normalization
-    norm_cols = ['claim_amount_claimed_total', 'object_year_construction', 'policy_insured_amount', 
+    norm_cols = ['claim_amount_claimed_total', 'object_year_construction',  
              'claim_time_interval', 'occurred_year', 'occurred_month', 'occurred_day',
              'reported_year', 'reported_month', 'reported_day', 'prev_claims']
 
