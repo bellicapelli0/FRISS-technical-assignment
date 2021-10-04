@@ -55,7 +55,7 @@ def predict():
       
     global df
     df = df.append({"ID":ID, "prediction":float(pred)}, ignore_index=True)
-    df.to_csv("test.csv", index=False)
+    df.to_csv(PREDICTION_FILE, index=False)
     
     return r
     
