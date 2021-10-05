@@ -173,7 +173,8 @@ def train_model(model, criterion, optimizer, train_dataloader, test_dataloader, 
         print("- Validation loss: {0:.4f}".format(eval_loss))
         print("- Validation took: {:.1f}s".format(time.time() - t0))
 
-        f1 = f1_score(eval_preds, eval_labels)
+        acc = accuracy_score(eval_preds, eval_labels)
+        
         # Save if new best score has been achieved
         if len(scores)==0:
             print("")
@@ -181,12 +182,14 @@ def train_model(model, criterion, optimizer, train_dataloader, test_dataloader, 
             torch.save(model.state_dict(), "savedmodels/{}".format(model_name))
             best_preds = eval_preds
             best_labels = eval_labels
-        elif f1 > max(scores):
+            
+        elif acc > max(scores):
             print("")
-            print("New best F1 score, saving...")
+            print("New best Accuracy score, saving...")
             torch.save(model.state_dict(), "savedmodels/{}".format(model_name))
             best_preds = eval_preds
             best_labels = eval_labels
+            
             patience = 0
         else:
             patience += 1
@@ -199,7 +202,7 @@ def train_model(model, criterion, optimizer, train_dataloader, test_dataloader, 
         if precision_score(eval_preds, eval_labels) == 1:
             scores.append(0.0)
         else:
-            scores.append(f1)
+            scores.append(acc)
 
     
 
@@ -208,7 +211,7 @@ def train_model(model, criterion, optimizer, train_dataloader, test_dataloader, 
     print("Finished Training")
     print("")
     best_epoch = np.argmax(scores)
-    print("Best seen F1 {:.4f} at epoch {}.".format(scores[best_epoch], best_epoch+1))
+    print("Best seen Accuracy {:.4f} at epoch {}.".format(scores[best_epoch], best_epoch+1))
 
     print("Best model saved with filename: {}".format(model_name))
     print("Loading best model...")
@@ -283,5 +286,5 @@ def predict_model(model, criterion, optimizer, test_dataloader, device):
     print("Finished Predicting")
     print("")
 
-    return preds, labels, IDs
+    return preds, labels, probs, IDs
 

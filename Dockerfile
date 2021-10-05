@@ -2,7 +2,7 @@ FROM python
 
 WORKDIR /api
 
-COPY test_predictions.csv .
+COPY data/test_predictions.csv .
 
 COPY least_bad_model.mdl .
 

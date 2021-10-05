@@ -15,7 +15,6 @@ NUMBER_OF_FEATURES = 23
 app = Flask(__name__)
 
 df = pd.read_csv(PREDICTION_FILE)
-print(df)
 df["ID"] = df["ID"].astype(str)
 
 model = ClaimClassifier(NUMBER_OF_FEATURES)
